@@ -6,22 +6,42 @@
 
 #define MAXLINELENGTH 1000
 
-static ini* createIni()
+
+static void ini_setStringValue(char** string,const char* value)
 {
-    ini* ini;
+	int size;
+	
+	if (*string!=NULL) free(*string);
 
-    ini=malloc(sizeof(ini));
-    ini->count=0;
-    ini->currentAllocation=5;
-    ini->items=malloc(sizeof(section)*ini->currentAllocation);
-
-    return ini;
+	if (value==NULL)
+	{
+		*string=NULL;
+	}
+	else
+	{
+		size=sizeof(char)*(strlen(value)+1);
+		*string=malloc(size);
+		memcpy(*string,value,size);
+	}
 }
 
-static section* addSection(ini* ini)
+static ini* ini_createIni()
+{
+    ini* dictionary;
+
+    dictionary=malloc(sizeof(ini));
+    dictionary->count=0;
+    dictionary->currentAllocation=5;
+    dictionary->items=malloc(sizeof(section)*dictionary->currentAllocation);
+
+    return dictionary;
+}
+
+static section* ini_addSection(ini* ini,const char* name)
 {
 	section* newSection;
-    section* section;
+    section* currentSection;
+	int size;
 	
     if (ini->currentAllocation==ini->count)
     {
@@ -31,19 +51,23 @@ static section* addSection(ini* ini)
         else ini->items=newSection;
     }
 
-    section=&ini->items[ini->count];
-    section->count=0;
-    section->currentAllocation=5;
-    section->items=malloc(sizeof(keyValuePair)*section->currentAllocation);
+    currentSection=&ini->items[ini->count];
+    currentSection->count=0;
+    currentSection->currentAllocation=5;
+    currentSection->items=malloc(sizeof(keyValuePair)*currentSection->currentAllocation);
+	currentSection->name=NULL;
+
+	ini_setStringValue(&currentSection->name,name);
+	
     ini->count++;
 
-    return section;
+    return currentSection;
 }
 
-static keyValuePair* addKeyValuePair(section* section)
+static keyValuePair* ini_addKeyValuePair(section* section,const char* key)
 {
     keyValuePair* newSection;
-    keyValuePair* keyValuePair;
+    keyValuePair* newKeyValuePair;
 	
 	if (section->currentAllocation==section->count)
     {
@@ -53,30 +77,38 @@ static keyValuePair* addKeyValuePair(section* section)
         else section->items=newSection;
     }
 
-    keyValuePair=&section->items[section->count];
+    newKeyValuePair=&section->items[section->count];
+	newKeyValuePair->key=NULL;
+	newKeyValuePair->value=NULL;
+	
+	ini_setStringValue(&newKeyValuePair->key,key);
+
     section->count++;
 
-    return keyValuePair;
+    return newKeyValuePair;
 }
+
+
+
 
 void ini_free(ini* ini)
 {
     int t;
     int s;
-    section section;
-    keyValuePair keyValuePair;
+    section currentSection;
+    keyValuePair currentKeyValuePair;
 
     for(t=0;t<ini->count;t++)
     {
-        section=ini->items[t];
-        free(section.name);
-        for(s=0;s<section.count;s++)
+        currentSection=ini->items[t];
+        if (currentSection.name!=NULL) free(currentSection.name);
+        for(s=0;s<currentSection.count;s++)
         {
-            keyValuePair=section.items[s];
-            free(keyValuePair.key);
-            free(keyValuePair.value);
+            currentKeyValuePair=currentSection.items[s];
+            free(currentKeyValuePair.key);
+            free(currentKeyValuePair.value);
         }
-        free(section.items);
+        free(currentSection.items);
     }
 
     free(ini->items);
@@ -86,17 +118,24 @@ void dump_ini(ini* ini)
 {
     int t;
     int s;
-    section section;
-    keyValuePair keyValuePair;
+    section currentSection;
+    keyValuePair currentKeyValuePair;
 
     for(t=0;t<ini->count;t++)
     {
-        section=ini->items[t];
-        printf("[%s]\n",section.name);
-        for(s=0;s<section.count;s++)
+        currentSection=ini->items[t];
+		if (currentSection.name==NULL)
+		{
+			printf("default\n");
+		}
+		else
+		{
+			printf("[%s]\n",currentSection.name);
+		}
+        for(s=0;s<currentSection.count;s++)
         {
-            keyValuePair=section.items[s];
-            printf("%s=%s\n",keyValuePair.key,keyValuePair.value);
+            currentKeyValuePair=currentSection.items[s];
+            printf("%s=%s\n",currentKeyValuePair.key,currentKeyValuePair.value);
          }
         printf("\n");
     }
@@ -112,9 +151,10 @@ ini* ini_open(const char* fileName)
     regmatch_t *matches = NULL;
     int start,end,length;
     ini* dictionary;
-    section* currentsection;
-    keyValuePair* keyValuePair;
-
+    section* currentSection;
+    keyValuePair* currentKeyValuePair;
+	char value[MAXLINELENGTH];
+	
     file = fopen(fileName, "r");
     if (file==NULL)
     {
@@ -122,7 +162,7 @@ ini* ini_open(const char* fileName)
         return NULL;
     }
 
-    dictionary=createIni();
+    dictionary=ini_createIni();
 
     regcomp(&emptyRegex,"^[ \t\n]*$",REG_EXTENDED | REG_NOSUB );
     regcomp(&commentRegex,"^[ \t\n]*#",REG_EXTENDED | REG_NOSUB);
@@ -132,11 +172,7 @@ ini* ini_open(const char* fileName)
     matches = malloc (sizeof (*matches) * 5);
     line=malloc(sizeof(*line)*MAXLINELENGTH);
 
-
-    currentsection=addSection(dictionary);
-    currentsection->name=malloc(sizeof(char)*8);
-    strncpy (currentsection->name, "default", 7);
-    currentsection->name[7]=0;
+    currentSection=ini_addSection(dictionary,NULL);
 
     while(fgets(line, MAXLINELENGTH, file)!=NULL)
     {
@@ -148,34 +184,31 @@ ini* ini_open(const char* fileName)
             end = matches[1].rm_eo;
             length = end - start;
 
-            currentsection=addSection(dictionary);
-            currentsection->name=malloc(sizeof(char)*length);
-            strncpy (currentsection->name, line+start, length);
-            currentsection->name[length]=0;
+			strncpy (value, line+start, length);value[length]=0;
+            currentSection=ini_addSection(dictionary,value);
 
-            //printf("New section: %s\n",currentsection.name);
             continue;
         }
         if (regexec(&keyRegex, line, 5, matches, 0)==0)    // new keyvalue pair
         {
-            keyValuePair=addKeyValuePair(currentsection);
 
             start = matches[1].rm_so;
             end = matches[1].rm_eo;
             length = end - start;
-            keyValuePair->key=malloc(length+1);
-            strncpy (keyValuePair->key, line+start, length);
-            keyValuePair->key[length]=0;
 
+			strncpy (value, line+start, length);value[length]=0;
+            currentKeyValuePair=ini_addKeyValuePair(currentSection,value);
 
             start = matches[2].rm_so;
             end = matches[2].rm_eo;
             if (line[start]=='"') { start++;end--;}
             length = end - start;
-            keyValuePair->value=malloc(length+1);
-            if (length>0) strncpy (keyValuePair->value, line+start, length);
-            keyValuePair->value[length]=0;
-
+			if (length>0)
+			{
+				strncpy (value, line+start, length);value[length]=0;
+				ini_setStringValue(&(currentKeyValuePair->value),value);
+			}
+			
             //printf("New key value pair: %s / %s\n",keyValuePair.key,keyValuePair.value);
             continue;
         }
@@ -198,74 +231,92 @@ ini* ini_open(const char* fileName)
 
 }
 
-section* ini_getSection(ini *ini, const char* name)
+section* ini_getSection(ini* ini, const char* sectionName)
 {
     int t;
-    section* section;
+    section* currentSection;
 
     for(t=0;t<ini->count;t++)
     {
-        section=&ini->items[t];
-        if (strcmp(section->name,name)==0) return section;
+        currentSection=&ini->items[t];
+        if ((currentSection->name==sectionName) ||  (strcmp(currentSection->name,sectionName)==0)) return currentSection;
     }
+	
+	currentSection=ini_addSection(ini,sectionName);
 
-    return NULL;
+    return currentSection;
 }
-keyValuePair* ini_getKeyValuePair(section *section, const char* name)
+keyValuePair* ini_getKeyValuePair(section *section, const char* key,char* defaultValue)
 {
     int t;
-    keyValuePair* keyValuePair;
+    keyValuePair* currentKeyValuePair;
 
-    for(t=0;t<section->count;t++)
+    for(t=0;t < section->count;t++)
     {
-        keyValuePair=&section->items[t];
-        if (strcmp(keyValuePair->key,name)==0) return keyValuePair;
+        currentKeyValuePair=&section->items[t];
+        if (strcmp(currentKeyValuePair->key,key)==0) return currentKeyValuePair;
     }
 
-    return NULL;
+	
+	currentKeyValuePair=ini_addKeyValuePair(section,key);
+	ini_setStringValue(&currentKeyValuePair->value,defaultValue);
+
+    return currentKeyValuePair;
 }
 
-char* ini_getString(ini *ini, const char* sectionName,const char* keyName,char* defaultValue)
+char* ini_getString(ini *ini, const char* sectionName,const char* key,char* defaultValue)
 {
-    section* section;
-    keyValuePair* keyValuePair;
+    section* currentSection;
+    keyValuePair* currentKeyValuePair;
 
-    section=ini_getSection(ini,sectionName);
-    if (section==NULL) return defaultValue;
-    keyValuePair=ini_getKeyValuePair(section,keyName);
-    if (keyValuePair==NULL) return defaultValue;
+    currentSection=ini_getSection(ini,sectionName);
+    currentKeyValuePair=ini_getKeyValuePair(currentSection,key,defaultValue);
 
-    return keyValuePair->value;
-
+    return currentKeyValuePair->value;
 }
 
-int ini_getInt(ini *ini, const char* sectionName,const char* keyName,int defaultValue)
+int ini_getInt(ini *ini, const char* sectionName,const char* key,int defaultValue)
 {
-    section* section;
-    keyValuePair* keyValuePair;
+    section* currentSection;
+    keyValuePair* currentKeyValuePair;
     int result;
+	char defaultString[255];
+	
+	sprintf(defaultString, "%d", defaultValue);
+	
+    currentSection=ini_getSection(ini,sectionName);
+    
+	currentKeyValuePair=ini_getKeyValuePair(currentSection,key,defaultString);
 
-    section=ini_getSection(ini,sectionName);
-    if (section==NULL) return defaultValue;
-    keyValuePair=ini_getKeyValuePair(section,keyName);
-    if (keyValuePair==NULL) return defaultValue;
-
-    if (sscanf(keyValuePair->value, "%d", &result)==1) return result;
+    if (sscanf(currentKeyValuePair->value, "%d", &result)==1) return result;
     else return defaultValue;
 
 }
 unsigned short ini_getUnsignedShort(ini *ini, const char* sectionName,const char* keyName,unsigned short defaultValue)
 {
-    section* section;
-    keyValuePair* keyValuePair;
+    section* currentSection;
+    keyValuePair* currentKeyValuePair;
     unsigned short result;
+	char defaultString[255];
+	
+	sprintf(defaultString, "%hu", defaultValue);
 
-    section=ini_getSection(ini,sectionName);
-    if (section==NULL) return defaultValue;
-    keyValuePair=ini_getKeyValuePair(section,keyName);
-    if (keyValuePair==NULL) return defaultValue;
+    currentSection=ini_getSection(ini,sectionName);
+    
+	currentKeyValuePair=ini_getKeyValuePair(currentSection,keyName,defaultString);
 
-    if (sscanf(keyValuePair->value, "%hu", &result)==1) return result;
+    if (sscanf(currentKeyValuePair->value, "%hu", &result)==1) return result;
     else return defaultValue;
 
+}
+
+void ini_setString(ini *ini,const char* sectionName,const char* key,const char* value)
+{
+	section* currentSection;
+    keyValuePair* currentKeyValuePair;
+
+    currentSection=ini_getSection(ini,sectionName);
+    currentKeyValuePair=ini_getKeyValuePair(currentSection,key,NULL);
+
+	ini_setStringValue(&currentKeyValuePair->value,value);
 }
