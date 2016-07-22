@@ -1,6 +1,10 @@
 #ifndef _INIFILE_
 #define _INIFILE_
 
+#ifdef __cplusplus
+extern "C"{
+#endif 
+
 typedef struct 
 {
    char* key;
@@ -24,21 +28,27 @@ typedef struct
     section *items;
 } ini;
 
+
+
 ini* ini_open(const char* fileName);
 void ini_free(ini* ini);
 void ini_dump(ini* ini);
 
-char* ini_getString(ini *ini, const char* sectionName,const char* key,char* defaultValue);
-int ini_getInt(ini *ini, const char* sectionName,const char* key,int defaultValue);
-unsigned short ini_getUnsignedShort(ini *ini, const char* sectionName,const char* key,unsigned short defaultValue);
+char* ini_getString(ini* ini, const char* sectionName,const char* key,char* defaultValue);
+int ini_getInt(ini* ini, const char* sectionName,const char* key,int defaultValue);
+unsigned short ini_getUnsignedShort(ini* ini, const char* sectionName,const char* key,unsigned short defaultValue);
 
 void ini_setString(ini *ini,const char* sectionName,const char* key,const char* value);
 
 
-section* ini_getSection(ini *ini, const char* nameName);
-keyValuePair* ini_getKeyValuePair(section *section, const char* key,char* defaultValue);
+section* ini_getSection(ini *ini, const char* sectionName);
+keyValuePair* ini_getKeyValuePair(section* section, const char* key,char* defaultValue);
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif // _INIFILE_
