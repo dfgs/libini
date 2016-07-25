@@ -246,7 +246,7 @@ section* ini_getSection(ini* ini, const char* sectionName)
 
     return currentSection;
 }
-keyValuePair* ini_getKeyValuePair(section *section, const char* key,char* defaultValue)
+keyValuePair* ini_getKeyValuePair(section *section, const char* key,const char* defaultValue)
 {
     int t;
     keyValuePair* currentKeyValuePair;
@@ -266,7 +266,7 @@ keyValuePair* ini_getKeyValuePair(section *section, const char* key,char* defaul
 
 
 
-char* ini_getString(ini *ini, const char* sectionName,const char* key,char* defaultValue)
+char* ini_getString(ini *ini, const char* sectionName,const char* key,const char* defaultValue)
 {
     section* currentSection;
     keyValuePair* currentKeyValuePair;
