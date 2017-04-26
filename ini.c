@@ -41,7 +41,7 @@ static section* ini_addSection(ini* ini,const char* name)
 {
 	section* newSection;
     section* currentSection;
-	int size;
+	//int size;
 	
     if (ini->currentAllocation==ini->count)
     {
@@ -114,7 +114,7 @@ void ini_free(ini* ini)
     free(ini->items);
     free(ini);
 }
-void dump_ini(ini* ini)
+void ini_dump(ini* ini)
 {
     int t;
     int s;
@@ -235,13 +235,20 @@ section* ini_getSection(ini* ini, const char* sectionName)
 {
     int t;
     section* currentSection;
-
+	
     for(t=0;t<ini->count;t++)
     {
         currentSection=&ini->items[t];
-        if ((currentSection->name==sectionName) ||  (strcmp(currentSection->name,sectionName)==0)) return currentSection;
-    }
-	
+		if (currentSection->name==NULL)
+		{
+			if (sectionName==NULL) return currentSection;
+		}
+		else
+		{
+			if (strcmp(currentSection->name,sectionName)==0) return currentSection;
+		}
+   }
+
 	currentSection=ini_addSection(ini,sectionName);
 
     return currentSection;
