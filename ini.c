@@ -27,14 +27,14 @@ static void ini_setStringValue(char** string,const char* value)
 
 static ini* ini_createIni()
 {
-    ini* dictionary;
+    ini* iniFile;
 
-    dictionary=malloc(sizeof(ini));
-    dictionary->count=0;
-    dictionary->currentAllocation=5;
-    dictionary->items=malloc(sizeof(section)*dictionary->currentAllocation);
+    iniFile=malloc(sizeof(ini));
+    iniFile->count=0;
+    iniFile->currentAllocation=5;
+    iniFile->items=malloc(sizeof(section)*iniFile->currentAllocation);
 
-    return dictionary;
+    return iniFile;
 }
 
 static section* ini_addSection(ini* ini,const char* name)
@@ -214,7 +214,6 @@ ini* ini_open(const char* fileName)
         }
 
         fprintf(stderr,"Syntax error in ini file: %s",line);
-        //fprintf(stderr,line);
     }
 
     fclose(file);
