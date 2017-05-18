@@ -18,31 +18,31 @@ typedef struct
     int currentAllocation;
     int count;
     keyValuePair *items;
-} section; 
+} Section; 
 
 
 typedef struct 
 {
     int currentAllocation;
     int count;
-    section *items;
-} ini;
+    Section *items;
+} IniFile;
 
 
 
-ini* ini_open(const char* fileName);
-void ini_free(ini* ini);
-void ini_dump(ini* ini);
+IniFile* ini_open(const char* fileName);
+void ini_free(IniFile* ini);
+void ini_dump(IniFile* ini);
 
-char* ini_getString(ini* ini, const char* sectionName,const char* key,const char* defaultValue);
-int ini_getInt(ini* ini, const char* sectionName,const char* key,int defaultValue);
-unsigned short ini_getUnsignedShort(ini* ini, const char* sectionName,const char* key,unsigned short defaultValue);
+char* ini_getString(IniFile* ini, const char* sectionName,const char* key,const char* defaultValue);
+int ini_getInt(IniFile* ini, const char* sectionName,const char* key,int defaultValue);
+unsigned short ini_getUnsignedShort(IniFile* ini, const char* sectionName,const char* key,unsigned short defaultValue);
 
-void ini_setString(ini *ini,const char* sectionName,const char* key,const char* value);
+void ini_setString(IniFile *ini,const char* sectionName,const char* key,const char* value);
 
 
-section* ini_getSection(ini *ini, const char* sectionName);
-keyValuePair* ini_getKeyValuePair(section* section, const char* key,const char* defaultValue);
+Section* ini_getSection(IniFile *ini, const char* sectionName);
+keyValuePair* ini_getKeyValuePair(Section* section, const char* key,const char* defaultValue);
 
 
 

@@ -25,28 +25,28 @@ static void ini_setStringValue(char** string,const char* value)
 	}
 }
 
-static ini* ini_createIni()
+static IniFile* ini_createIni()
 {
-    ini* iniFile;
+    IniFile* iniFile;
 
-    iniFile=malloc(sizeof(ini));
+    iniFile=malloc(sizeof(IniFile));
     iniFile->count=0;
     iniFile->currentAllocation=5;
-    iniFile->items=malloc(sizeof(section)*iniFile->currentAllocation);
+    iniFile->items=malloc(sizeof(Section)*iniFile->currentAllocation);
 
     return iniFile;
 }
 
-static section* ini_addSection(ini* ini,const char* name)
+static Section* ini_addSection(IniFile* ini,const char* name)
 {
-	section* newSection;
-    section* currentSection;
+	Section* newSection;
+    Section* currentSection;
 	//int size;
 	
     if (ini->currentAllocation==ini->count)
     {
         ini->currentAllocation+=5;
-        newSection=realloc(ini->items,sizeof(section)*ini->currentAllocation);
+        newSection=realloc(ini->items,sizeof(Section)*ini->currentAllocation);
         if (newSection==NULL) perror("Not enough memory");
         else ini->items=newSection;
     }
@@ -64,7 +64,7 @@ static section* ini_addSection(ini* ini,const char* name)
     return currentSection;
 }
 
-static keyValuePair* ini_addKeyValuePair(section* section,const char* key)
+static keyValuePair* ini_addKeyValuePair(Section* section,const char* key)
 {
     keyValuePair* newSection;
     keyValuePair* newKeyValuePair;
@@ -91,11 +91,11 @@ static keyValuePair* ini_addKeyValuePair(section* section,const char* key)
 
 
 
-void ini_free(ini* ini)
+void ini_free(IniFile* ini)
 {
     int t;
     int s;
-    section currentSection;
+    Section currentSection;
     keyValuePair currentKeyValuePair;
 
     for(t=0;t<ini->count;t++)
@@ -114,11 +114,11 @@ void ini_free(ini* ini)
     free(ini->items);
     free(ini);
 }
-void ini_dump(ini* ini)
+void ini_dump(IniFile* ini)
 {
     int t;
     int s;
-    section currentSection;
+    Section currentSection;
     keyValuePair currentKeyValuePair;
 
     for(t=0;t<ini->count;t++)
@@ -143,15 +143,15 @@ void ini_dump(ini* ini)
 
 }
 
-ini* ini_open(const char* fileName)
+IniFile* ini_open(const char* fileName)
 {
     FILE *file;
     char* line;
     regex_t commentRegex,emptyRegex,sectionRegex,keyRegex;
     regmatch_t *matches = NULL;
     int start,end,length;
-    ini* dictionary;
-    section* currentSection;
+    IniFile* dictionary;
+    Section* currentSection;
     keyValuePair* currentKeyValuePair;
 	char value[MAXLINELENGTH];
 	
@@ -230,10 +230,10 @@ ini* ini_open(const char* fileName)
 
 }
 
-section* ini_getSection(ini* ini, const char* sectionName)
+Section* ini_getSection(IniFile* ini, const char* sectionName)
 {
     int t;
-    section* currentSection;
+    Section* currentSection;
 	
     for(t=0;t<ini->count;t++)
     {
@@ -252,7 +252,7 @@ section* ini_getSection(ini* ini, const char* sectionName)
 
     return currentSection;
 }
-keyValuePair* ini_getKeyValuePair(section *section, const char* key,const char* defaultValue)
+keyValuePair* ini_getKeyValuePair(Section *section, const char* key,const char* defaultValue)
 {
     int t;
     keyValuePair* currentKeyValuePair;
@@ -272,9 +272,9 @@ keyValuePair* ini_getKeyValuePair(section *section, const char* key,const char* 
 
 
 
-char* ini_getString(ini *ini, const char* sectionName,const char* key,const char* defaultValue)
+char* ini_getString(IniFile *ini, const char* sectionName,const char* key,const char* defaultValue)
 {
-    section* currentSection;
+    Section* currentSection;
     keyValuePair* currentKeyValuePair;
 
     currentSection=ini_getSection(ini,sectionName);
@@ -283,9 +283,9 @@ char* ini_getString(ini *ini, const char* sectionName,const char* key,const char
     return currentKeyValuePair->value;
 }
 
-int ini_getInt(ini *ini, const char* sectionName,const char* key,int defaultValue)
+int ini_getInt(IniFile *ini, const char* sectionName,const char* key,int defaultValue)
 {
-    section* currentSection;
+    Section* currentSection;
     keyValuePair* currentKeyValuePair;
     int result;
 	char defaultString[255];
@@ -300,9 +300,9 @@ int ini_getInt(ini *ini, const char* sectionName,const char* key,int defaultValu
     else return defaultValue;
 
 }
-unsigned short ini_getUnsignedShort(ini *ini, const char* sectionName,const char* keyName,unsigned short defaultValue)
+unsigned short ini_getUnsignedShort(IniFile *ini, const char* sectionName,const char* keyName,unsigned short defaultValue)
 {
-    section* currentSection;
+    Section* currentSection;
     keyValuePair* currentKeyValuePair;
     unsigned short result;
 	char defaultString[255];
@@ -318,9 +318,9 @@ unsigned short ini_getUnsignedShort(ini *ini, const char* sectionName,const char
 
 }
 
-void ini_setString(ini *ini,const char* sectionName,const char* key,const char* value)
+void ini_setString(IniFile *ini,const char* sectionName,const char* key,const char* value)
 {
-	section* currentSection;
+	Section* currentSection;
     keyValuePair* currentKeyValuePair;
 
     currentSection=ini_getSection(ini,sectionName);
